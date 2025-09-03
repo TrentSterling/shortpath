@@ -1,0 +1,808 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Shortest Path Visualizations: Duan-Mao & Dijkstra</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* BASE & THEME STYLES */
+        :root {
+            --bg-color: #111318;
+            --surface-color: #1a1d23;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-color: #e0e0e0;
+            --text-muted: #8b949e;
+            --accent-purple: #c874e8;
+            --accent-teal: #2ee6d7;
+            --accent-pink: #ff79c6;
+            --accent-blue: #58a6ff;
+            --accent-green: #4ade80;
+            --accent-yellow: #ffd700;
+            --accent-orange: #ff8b3d;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        @keyframes spin-glow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 2rem 1rem;
+            overflow-x: hidden;
+        }
+
+        /* TYPOGRAPHY */
+        h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            margin-bottom: 2rem;
+            text-align: center;
+            text-shadow: 0 0 20px rgba(255,255,255,0.1);
+        }
+
+        h2 {
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        h3 {
+            color: var(--text-color);
+            font-weight: 500;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+        
+        /* LAYOUT & MAIN CONTAINER */
+        .page-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3rem;
+            width: 100%;
+            overflow: clip; /* FIX: Prevents pseudo-elements from creating extra scroll height */
+        }
+
+        .page-container::before, .page-container::after {
+            content: '';
+            position: absolute;
+            z-index: -1;
+            width: 80vmax;
+            height: 80vmax;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.15;
+            animation: spin-glow 60s linear infinite;
+        }
+
+        .page-container::before {
+            top: -40vmax;
+            left: -40vmax;
+            background-color: var(--accent-purple);
+        }
+
+        .page-container::after {
+            bottom: -40vmax;
+            right: -40vmax;
+            background-color: var(--accent-teal);
+            animation-delay: -30s;
+        }
+
+        /* CARD STYLES */
+        .card {
+            background-color: rgba(26, 29, 35, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+
+        /* SECTION-SPECIFIC LAYOUTS */
+        .grid-sim-section {
+            display: flex;
+            flex-direction: row;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .controls-info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 400px;
+            flex-shrink: 0;
+        }
+
+        .visualization-panel {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .comparison-sim-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1140px;
+        }
+
+        .visualizations-grid {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            gap: 2rem;
+            width: 100%;
+        }
+
+        .visualization { text-align: center; }
+
+        /* CONTROLS & BUTTONS */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            border: 1px solid var(--accent-teal);
+            background-color: transparent;
+            color: var(--accent-teal);
+            transition: all 0.2s ease;
+            flex-grow: 1;
+        }
+
+        .controls button:hover {
+            background-color: var(--accent-teal);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px -5px var(--accent-teal);
+            transform: translateY(-2px);
+        }
+
+        .controls button:disabled {
+            border-color: var(--text-muted) !important;
+            color: var(--text-muted) !important;
+            background-color: transparent !important;
+            cursor: not-allowed !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        #status-text {
+            margin-top: 1rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            min-height: 1.2em;
+            text-align: center;
+        }
+
+        input[type="range"] { -webkit-appearance: none; appearance: none; width: 150px; background: transparent; }
+        input[type="range"]::-webkit-slider-runnable-track { height: 6px; background: var(--border-color); border-radius: 3px; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; margin-top: -5px; height: 16px; width: 16px; background: var(--accent-pink); border-radius: 50%; cursor: pointer; }
+
+        /* LEGEND STYLES */
+        .legend { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; justify-content: center; }
+        .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .legend-color { width: 20px; height: 20px; border-radius: 50%; }
+
+        /* SVG & VISUALIZATION STYLES */
+        svg {
+            width: 100%;
+            height: auto;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+        
+        #dijkstra-svg, #new-algo-svg { max-width: 500px; }
+
+        .stats { margin-top: 1rem; color: var(--text-muted); min-height: 2em; }
+        
+        /* TEXT & FOOTER */
+        .explanation { max-width: 1140px; text-align: left; font-size: 16px; line-height: 1.7; }
+        .explanation h3 { text-align: center; margin-bottom: 1rem; }
+        .explanation p { margin-bottom: 1rem; color: var(--text-muted); }
+        .explanation strong { color: var(--text-color); font-weight: 500; }
+
+        .footer {
+            margin-top: 2rem;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .footer a { color: var(--accent-blue); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        .footer p { margin: 8px 0; }
+        
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 1024px) {
+            .grid-sim-section { flex-direction: column; align-items: center; }
+            .controls-info-panel { max-width: 600px; }
+            .visualizations-grid { flex-direction: column; align-items: center; }
+            .visualization { width: 100%; max-width: 550px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <h1>Advanced Shortest Path Visualizations</h1>
+
+        <!-- SECTION 1: DUAN-MAO ON A DENSE GRID -->
+        <div class="grid-sim-section">
+            <div class="controls-info-panel">
+                 <h2>Duan-Mao Algorithm on a Dense Grid</h2>
+                <div class="card controls">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; width: 100%;">
+                        <button id="newMapBtn">New Map</button>
+                        <button id="runAllBtn">Run All</button>
+                        <button id="nextStepBtn">Next Step</button>
+                    </div>
+                    <div id="status-text">Ready. Generate a map to begin.</div>
+                </div>
+                <div class="card legend">
+                    <div class="legend-grid">
+                        <div class="legend-item"><div class="legend-color" style="background: var(--accent-green); border-radius: 4px;"></div> Start/End</div>
+                        <div class="legend-item"><div class="legend-color" style="background: var(--accent-pink); border-radius: 4px;"></div> Pivot</div>
+                        <div class="legend-item"><div class="legend-color" style="background: var(--accent-teal); border-radius: 4px;"></div> Expanded</div>
+                        <div class="legend-item"><div class="legend-color" style="background: var(--accent-yellow); border-radius: 4px;"></div> A* Search</div>
+                        <div class="legend-item"><div class="legend-color" style="background: var(--accent-orange); border-radius: 4px;"></div> Final Path</div>
+                        <div class="legend-item"><div class="legend-color" style="background: #333; border-radius: 4px;"></div> Wall</div>
+                    </div>
+                </div>
+                <div class="card info">
+                    <h3>Conceptual Visualization</h3>
+                    <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6;">This tool shows the core ideas of the Duan-Mao algorithm on a procedurally generated map. Instead of a slow, exhaustive search, it first partitions the graph, selects random pivots, and runs a fast, parallel expansion to quickly explore the space. Finally, an A* search efficiently connects these explored zones to find the optimal path through the obstacles.</p>
+                </div>
+            </div>
+            <div class="visualization-panel">
+                <svg id="grid-svg" viewBox="0 0 1000 600"></svg>
+            </div>
+        </div>
+
+        <!-- SECTION 2: DIJKSTRA VS DUAN-MAO COMPARISON -->
+        <div class="comparison-sim-section">
+            <h2>Dijkstra vs. Duan-Mao (Conceptual)</h2>
+            <div class="card controls">
+                <button id="startBtn">Start Simulation</button>
+                <button id="resetBtn">Reset</button>
+                <label for="speed">Speed:</label>
+                <input type="range" id="speed" min="50" max="1000" value="300">
+            </div>
+            <div class="card legend">
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-green);"></div> Start/End</div>
+                <div class="legend-item"><div class="legend-color" style="background: #6c757d;"></div> Unvisited</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-yellow);"></div> Frontier</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-teal);"></div> Visited</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-pink); border-radius: 4px;"></div> Cluster/Pivot</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-blue);"></div> Final Path</div>
+            </div>
+            <div class="visualizations-grid">
+                <div class="visualization">
+                    <h3>Dijkstra's Algorithm</h3>
+                    <svg id="dijkstra-svg" width="500" height="500" viewBox="0 0 500 500"></svg>
+                    <div id="dijkstra-stats" class="stats">Operations: 0 | Path Cost: N/A</div>
+                </div>
+                <div class="visualization">
+                    <h3>Duan-Mao Algorithm</h3>
+                    <svg id="new-algo-svg" width="500" height="500" viewBox="0 0 500 500"></svg>
+                    <div id="new-algo-stats" class="stats">Operations: 0 | Path Cost: N/A</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: EXPLANATION & FOOTER -->
+        <div class="card explanation">
+            <h3>What's the Big Deal? (The 40-Year Bottleneck)</h3>
+            <p>
+                For over 40 years, finding the shortest path was dominated by <strong>Dijkstra's Algorithm</strong>. Its strategy is a meticulous "shock wave" that always finds the *absolute closest* unvisited node. This requires constantly sorting a large "frontier" of possibilities, creating a performance limit known as the <strong>"sorting bottleneck,"</strong> a theoretical barrier thought to be unbreakable since the 1980s.
+            </p>
+            <p>
+                The 2025 breakthrough by <strong>Duan, Mao, et al.</strong> bypasses this by avoiding sorting altogether. It uses a <strong>divide-and-conquer</strong> strategy that works in <strong>layers</strong>. Instead of sorting every node, it groups the frontier into clusters and selects representative <strong>pivots</strong>. It then uses a few <strong>Bellman-Ford-style relaxations</strong> to propagate distances from these pivots. This approach is more efficient, though the Rust implementation's author notes you need "VERY large graphs under VERY specific circumstances" for it to outperform alternatives.
+            </p>
+            <p>
+                <strong>About These Simulations:</strong> These are <strong>conceptual visualizations</strong> (or "POCs" - Proof of Concepts) of these high-level strategies. The grid simulation shows a practical application on a maze, while the comparison below shows the core strategic differences on a classic graph problem.
+            </p>
+        </div>
+        <div class="footer">
+            <p>
+                Conceptual visualization by <a href="https://tront.xyz/" target="_blank">Trent "Tront" Sterling</a>
+                (<a href="https://github.com/TrentSterling" target="_blank">GitHub</a>).
+            </p>
+            <p>
+                Based on the paper: <a href="https://arxiv.org/abs/2504.17033" target="_blank">"Breaking the Sorting Barrier for Directed Single-Source Shortest Paths"</a>
+                by Ran Duan, Jiayi Mao, Xiao Mao, Xinkai Shu, and Longhui Yin (2025).
+            </p>
+        </div>
+    </div>
+
+<script>
+// SCRIPT FOR: Duan-Mao on a Dense Grid (Top Simulation)
+// Wrapped in a block scope to prevent variable conflicts
+{
+    const GRID_WIDTH = 25;
+    const GRID_HEIGHT = 15;
+    const NUM_PARTITIONS = 5;
+    const PIVOTS_PER_PARTITION = 3;
+    const EXPANSION_DEPTH = 5;
+
+    const svg = document.getElementById('grid-svg');
+    const nextStepBtn = document.getElementById('nextStepBtn');
+    const runAllBtn = document.getElementById('runAllBtn');
+    const newMapBtn = document.getElementById('newMapBtn');
+    const statusText = document.getElementById('status-text');
+
+    let graph = { nodes: [], edges: [] };
+    let startNodeId, endNodeId;
+    let currentState = -1;
+    let isAutoRunning = false;
+    let autoRunTimeout;
+
+    const ACCENT_COLORS_GRID = {
+        green: '#4ade80',
+        yellow: '#ffd700',
+        teal: '#2ee6d7',
+        pink: '#ff79c6',
+        orange: '#ff8b3d'
+    };
+
+    function createMazeGraph() {
+        graph = { nodes: [], edges: [] };
+        const nodeSize = 38; const padding = 10;
+        const totalWidth = GRID_WIDTH * nodeSize; const totalHeight = GRID_HEIGHT * nodeSize;
+        svg.setAttribute('viewBox', `0 0 ${totalWidth + padding*2} ${totalHeight + padding*2}`);
+
+        for (let y = 0; y < GRID_HEIGHT; y++) {
+            for (let x = 0; x < GRID_WIDTH; x++) {
+                const id = y * GRID_WIDTH + x;
+                graph.nodes.push({ id, x: x * nodeSize + nodeSize / 2 + padding, y: y * nodeSize + nodeSize / 2 + padding, partition: Math.floor(x / (GRID_WIDTH / NUM_PARTITIONS)), isWall: true });
+            }
+        }
+
+        const stack = [];
+        const startMazeNode = 0;
+        graph.nodes[startMazeNode].isWall = false;
+        stack.push(startMazeNode);
+
+        while(stack.length > 0) {
+            const currentId = stack.pop();
+            const neighbors = [];
+            const x = currentId % GRID_WIDTH; const y = Math.floor(currentId / GRID_WIDTH);
+            if(x > 1) neighbors.push(currentId - 2);
+            if(x < GRID_WIDTH - 2) neighbors.push(currentId + 2);
+            if(y > 1) neighbors.push(currentId - GRID_WIDTH * 2);
+            if(y < GRID_HEIGHT - 2) neighbors.push(currentId + GRID_WIDTH * 2);
+            
+            neighbors.sort(() => Math.random() - 0.5);
+
+            for (const neighborId of neighbors) {
+                if(graph.nodes[neighborId] && graph.nodes[neighborId].isWall) {
+                    stack.push(currentId);
+                    graph.nodes[neighborId].isWall = false;
+                    const wallId = (currentId + neighborId) / 2;
+                    graph.nodes[wallId].isWall = false;
+                    stack.push(neighborId);
+                    break;
+                }
+            }
+        }
+        
+        const validNodes = graph.nodes.filter(n => !n.isWall);
+        for (const node of validNodes) {
+            const x = node.id % GRID_WIDTH; const y = Math.floor(node.id / GRID_WIDTH);
+            if (x > 0 && !graph.nodes[node.id - 1].isWall) graph.edges.push({ source: node.id, target: node.id - 1 });
+            if (y > 0 && !graph.nodes[node.id - GRID_WIDTH].isWall) graph.edges.push({ source: node.id, target: node.id - GRID_WIDTH });
+        }
+        
+        const leftThird = validNodes.filter(n => (n.id % GRID_WIDTH) < GRID_WIDTH / 3);
+        const rightThird = validNodes.filter(n => (n.id % GRID_WIDTH) > (GRID_WIDTH * 2 / 3));
+        
+        startNodeId = leftThird[Math.floor(Math.random() * leftThird.length)].id;
+        endNodeId = rightThird[Math.floor(Math.random() * rightThird.length)].id;
+    }
+
+    function drawGridGraph() {
+        svg.innerHTML = '';
+        const partitionColors = ['#27223d', '#3d2230', '#223d2b', '#3d3a22', '#222f3d'];
+        const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        graph.nodes.forEach(node => {
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            const size = node.isWall ? 38 : 10;
+            rect.setAttribute('x', node.x - size/2); rect.setAttribute('y', node.y - size/2);
+            rect.setAttribute('width', size); rect.setAttribute('height', size);
+            rect.setAttribute('fill', node.isWall ? '#333' : '#6c757d');
+            rect.setAttribute('id', `node-grid-${node.id}`); // Scoped ID
+            rect.setAttribute('class', 'node');
+            if(currentState > 0 && !node.isWall) rect.style.fill = partitionColors[node.partition];
+            nodeGroup.appendChild(rect);
+        });
+        svg.appendChild(nodeGroup);
+        updateGridNodeColor(startNodeId, ACCENT_COLORS_GRID.green);
+        updateGridNodeColor(endNodeId, ACCENT_COLORS_GRID.green);
+    }
+
+    function updateGridNodeColor(nodeId, color, size = 16) {
+        const node = document.getElementById(`node-grid-${nodeId}`); // Scoped ID
+        if(node) {
+            node.style.fill = color;
+            if(graph.nodes[nodeId] && !graph.nodes[nodeId].isWall){
+                node.setAttribute('width', size); node.setAttribute('height', size);
+                node.setAttribute('x', graph.nodes[nodeId].x - size/2);
+                node.setAttribute('y', graph.nodes[nodeId].y - size/2);
+            }
+        }
+    }
+
+    let pivots = [];
+    let expandedNodes = new Set();
+    async function handleNextStep() {
+        currentState++;
+        nextStepBtn.disabled = true; runAllBtn.disabled = true;
+
+        switch (currentState) {
+            case 1:
+                statusText.textContent = "Step 1: Partitioning graph...";
+                drawGridGraph();
+                break;
+            case 2:
+                statusText.textContent = "Step 2: Selecting pivots...";
+                pivots = [];
+                for (let i = 0; i < NUM_PARTITIONS; i++) {
+                    const nodesInPartition = graph.nodes.filter(n => !n.isWall && n.partition === i && n.id !== startNodeId && n.id !== endNodeId);
+                    for (let j = 0; j < PIVOTS_PER_PARTITION && nodesInPartition.length > 0; j++) {
+                        const pivot = nodesInPartition.splice(Math.floor(Math.random() * nodesInPartition.length), 1)[0];
+                        pivots.push(pivot.id);
+                        updateGridNodeColor(pivot.id, ACCENT_COLORS_GRID.pink, 14);
+                    }
+                }
+                break;
+            case 3:
+                statusText.textContent = "Step 3: Parallel bounded expansion...";
+                let currentFrontier = new Set([startNodeId, ...pivots]);
+                expandedNodes = new Set();
+                for (let i = 0; i < EXPANSION_DEPTH; i++) {
+                    let nextFrontier = new Set();
+                    for (const nodeId of currentFrontier) {
+                        if (!expandedNodes.has(nodeId)) {
+                            expandedNodes.add(nodeId);
+                            if(nodeId !== startNodeId && !pivots.includes(nodeId)) updateGridNodeColor(nodeId, ACCENT_COLORS_GRID.teal);
+                            getNeighbors(nodeId).forEach(n => { if (!expandedNodes.has(n)) nextFrontier.add(n) });
+                        }
+                    }
+                    currentFrontier = nextFrontier;
+                }
+                break;
+            case 4:
+                statusText.textContent = "Step 4: Connecting zones with A* search...";
+                const pathFound = await findShortestPathAStar(startNodeId, endNodeId);
+                if (!pathFound) {
+                    statusText.textContent = "No Path Found. Please create a New Map.";
+                    currentState = 5;
+                    stopAutoRun();
+                    return;
+                }
+                break;
+            case 5:
+                statusText.textContent = "Simulation Finished.";
+                stopAutoRun(); return;
+        }
+        if (currentState < 5 && !isAutoRunning) { nextStepBtn.disabled = false; runAllBtn.disabled = false; }
+    }
+
+    function getNeighbors(nodeId) {
+        return graph.edges.filter(e => e.source === nodeId || e.target === nodeId).map(e => e.source === nodeId ? e.target : e.source);
+    }
+    
+    function heuristic(a, b) {
+        const nodeA = graph.nodes[a]; const nodeB = graph.nodes[b];
+        return Math.abs(nodeA.x - nodeB.x) + Math.abs(nodeA.y - nodeB.y);
+    }
+
+    async function findShortestPathAStar(start, end) {
+        let openSet = [start]; let cameFrom = {};
+        let gScore = new Array(graph.nodes.length).fill(Infinity); gScore[start] = 0;
+        let fScore = new Array(graph.nodes.length).fill(Infinity); fScore[start] = heuristic(start, end);
+
+        while (openSet.length > 0) {
+            openSet.sort((a, b) => fScore[a] - fScore[b]);
+            let current = openSet.shift();
+            if (current !== start) updateGridNodeColor(current, ACCENT_COLORS_GRID.yellow);
+            if (current === end) {
+                let path = [];
+                while (current !== undefined) { path.unshift(current); current = cameFrom[current]; }
+                for(const nodeId of path) { updateGridNodeColor(nodeId, ACCENT_COLORS_GRID.orange); }
+                return true;
+            }
+            for (const neighbor of getNeighbors(current)) {
+                let tentative_gScore = gScore[current] + 1;
+                if (tentative_gScore < gScore[neighbor]) {
+                    cameFrom[neighbor] = current; gScore[neighbor] = tentative_gScore;
+                    fScore[neighbor] = gScore[neighbor] + heuristic(neighbor, end);
+                    if (!openSet.includes(neighbor)) openSet.push(neighbor);
+                }
+            }
+            if (isAutoRunning) await new Promise(r => setTimeout(r, 1));
+        }
+        return false;
+    }
+    
+    function resetGridSim() {
+        stopAutoRun();
+        currentState = 0;
+        pivots = [];
+        expandedNodes.clear();
+        createMazeGraph();
+        drawGridGraph();
+        statusText.textContent = "Ready. Press 'Next Step' or 'Run All'.";
+        nextStepBtn.disabled = false;
+        runAllBtn.disabled = false;
+    }
+    
+    function startAutoRun() {
+        if (currentState >= 5) return;
+        isAutoRunning = true;
+        runAllBtn.textContent = "Pause";
+        nextStepBtn.disabled = true;
+        const runStep = async () => {
+            if (!isAutoRunning) return;
+            await handleNextStep();
+            if (currentState < 5) autoRunTimeout = setTimeout(runStep, 500);
+        };
+        runStep();
+    }
+
+    function stopAutoRun() {
+        isAutoRunning = false;
+        clearTimeout(autoRunTimeout);
+        runAllBtn.textContent = "Run All";
+        if (currentState < 5) { nextStepBtn.disabled = false; runAllBtn.disabled = false; }
+    }
+
+    newMapBtn.addEventListener('click', resetGridSim);
+    nextStepBtn.addEventListener('click', handleNextStep);
+    runAllBtn.addEventListener('click', () => { isAutoRunning ? stopAutoRun() : startAutoRun(); });
+    
+    document.addEventListener('DOMContentLoaded', resetGridSim);
+}
+
+
+// SCRIPT FOR: Dijkstra vs. Duan-Mao Comparison (Bottom Simulation)
+// Wrapped in a block scope to prevent variable conflicts
+{
+    // IMPROVEMENT: Renamed to avoid conflicts with the grid simulation's 'graph'
+    const comparisonGraph = { nodes: [], edges: [] };
+
+    function createComparisonGraph() {
+        comparisonGraph.nodes = [
+            { id: 0, x: 50, y: 250, name: 'S' }, { id: 1, x: 150, y: 100, name: 'A' },
+            { id: 2, x: 150, y: 400, name: 'B' }, { id: 3, x: 250, y: 150, name: 'C' },
+            { id: 4, x: 250, y: 350, name: 'D' }, { id: 5, x: 350, y: 100, name: 'E' },
+            { id: 6, x: 350, y: 400, name: 'F' }, { id: 7, x: 450, y: 250, name: 'T' }
+        ];
+        comparisonGraph.edges = [
+            { source: 0, target: 1, weight: 4 }, { source: 0, target: 2, weight: 3 },
+            { source: 1, target: 3, weight: 5 }, { source: 1, target: 5, weight: 1 },
+            { source: 2, target: 1, weight: 2 }, { source: 2, target: 4, weight: 6 },
+            { source: 3, target: 5, weight: 2 }, { source: 3, target: 7, weight: 7 },
+            { source: 4, target: 6, weight: 2 }, { source: 4, target: 7, weight: 4 },
+            { source: 5, target: 7, weight: 3 }, { source: 6, target: 7, weight: 1 }
+        ];
+    }
+    const START_NODE = 0;
+    const END_NODE = 7;
+    const NODE_RADIUS = 15;
+    const ACCENT_COLORS_COMPARE = {
+        green: '#4ade80', yellow: '#ffd700', teal: '#2ee6d7', pink: '#ff79c6', blue: '#58a6ff'
+    };
+
+    const dijkstraSvg = document.getElementById('dijkstra-svg');
+    const newAlgoSvg = document.getElementById('new-algo-svg');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const speedSlider = document.getElementById('speed');
+    
+    let simulationSpeed = () => 1050 - speedSlider.value;
+    let isRunning = false;
+
+    function drawComparisonGraph(svg, graphData) {
+        svg.innerHTML = '';
+        const edgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        svg.appendChild(edgeGroup);
+        graphData.edges.forEach(edge => {
+            const sourceNode = graphData.nodes.find(n => n.id === edge.source);
+            const targetNode = graphData.nodes.find(n => n.id === edge.target);
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', sourceNode.x); line.setAttribute('y1', sourceNode.y);
+            line.setAttribute('x2', targetNode.x); line.setAttribute('y2', targetNode.y);
+            line.setAttribute('stroke', '#444'); line.setAttribute('stroke-width', '2');
+            line.setAttribute('id', `edge-${svg.id}-${edge.source}-${edge.target}`);
+            edgeGroup.appendChild(line);
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', (sourceNode.x + targetNode.x) / 2);
+            text.setAttribute('y', (sourceNode.y + targetNode.y) / 2 - 5);
+            text.textContent = edge.weight;
+            text.setAttribute('style', 'font-size: 10px; fill: var(--text-muted); text-anchor: middle;');
+            edgeGroup.appendChild(text);
+        });
+        const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        svg.appendChild(nodeGroup);
+        graphData.nodes.forEach(node => {
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', node.x); circle.setAttribute('cy', node.y); circle.setAttribute('r', NODE_RADIUS);
+            circle.setAttribute('fill', '#6c757d'); circle.setAttribute('stroke', '#333'); circle.setAttribute('stroke-width', '2');
+            circle.setAttribute('id', `node-${svg.id}-${node.id}`);
+            nodeGroup.appendChild(circle);
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', node.x); text.setAttribute('y', node.y); text.textContent = node.name;
+            text.setAttribute('style', 'font-size: 10px; fill: var(--bg-color); text-anchor: middle; dominant-baseline: central; pointer-events: none; font-weight: bold;');
+            nodeGroup.appendChild(text);
+        });
+        updateCompareNodeColor(svg, START_NODE, ACCENT_COLORS_COMPARE.green); 
+        updateCompareNodeColor(svg, END_NODE, ACCENT_COLORS_COMPARE.green);
+    }
+
+    function updateCompareNodeColor(svg, nodeId, color) { 
+        const node = document.getElementById(`node-${svg.id}-${nodeId}`); 
+        if (node) node.style.fill = color; 
+    }
+
+    function updateEdgeColor(svg, sourceId, targetId, color, width = 4) { 
+        const edge = document.getElementById(`edge-${svg.id}-${sourceId}-${targetId}`) || document.getElementById(`edge-${svg.id}-${targetId}-${sourceId}`); 
+        if (edge) { edge.setAttribute('stroke', color); edge.setAttribute('stroke-width', width); } 
+    }
+
+    function delay() { return new Promise(resolve => setTimeout(resolve, simulationSpeed())); }
+
+    async function runDijkstra() {
+        let ops = 0;
+        const statsEl = document.getElementById('dijkstra-stats');
+        const distances = {}; const prev = {}; const pq = new Set();
+        comparisonGraph.nodes.forEach(node => { distances[node.id] = Infinity; prev[node.id] = null; pq.add(node.id); });
+        distances[START_NODE] = 0;
+        while (pq.size > 0) {
+            let u = Array.from(pq).reduce((a, b) => distances[a] < distances[b] ? a : b);
+            if (distances[u] === Infinity) break;
+            pq.delete(u);
+            ops++;
+            updateCompareNodeColor(dijkstraSvg, u, ACCENT_COLORS_COMPARE.teal);
+            if (u === START_NODE) updateCompareNodeColor(dijkstraSvg, u, ACCENT_COLORS_COMPARE.green);
+            statsEl.textContent = `Operations: ${ops} | ...`;
+            await delay();
+            if (u === END_NODE) break;
+            const neighbors = comparisonGraph.edges.filter(e => e.source === u || e.target === u);
+            for (const edge of neighbors) {
+                const v = edge.source === u ? edge.target : edge.source;
+                if (pq.has(v)) {
+                    updateCompareNodeColor(dijkstraSvg, v, ACCENT_COLORS_COMPARE.yellow);
+                    const alt = distances[u] + edge.weight;
+                    if (alt < distances[v]) { distances[v] = alt; prev[v] = u; }
+                }
+            }
+        }
+        let current = END_NODE;
+        while (current !== null && prev[current] !== undefined) {
+            const previous = prev[current]; if (previous === null) break;
+            updateEdgeColor(dijkstraSvg, current, previous, ACCENT_COLORS_COMPARE.blue); 
+            updateCompareNodeColor(dijkstraSvg, current, ACCENT_COLORS_COMPARE.blue); 
+            current = previous;
+        }
+        updateCompareNodeColor(dijkstraSvg, START_NODE, ACCENT_COLORS_COMPARE.green); 
+        updateCompareNodeColor(dijkstraSvg, END_NODE, ACCENT_COLORS_COMPARE.green);
+        statsEl.textContent = `Operations: ${ops} | Path Cost: ${distances[END_NODE]}`;
+    }
+
+    async function runNewAlgorithm() {
+        let ops = 0;
+        const statsEl = document.getElementById('new-algo-stats');
+        const { distances, prev } = findShortestPathForDrawing();
+        statsEl.textContent = `Phase 1: Clustering nodes...`;
+        const clusters = [[1, 3, 5], [2, 4, 6]];
+        clusters.forEach(cluster => cluster.forEach(nodeId => {
+            const nodeEl = document.getElementById(`node-${newAlgoSvg.id}-${nodeId}`);
+            if(nodeEl) { nodeEl.style.stroke = ACCENT_COLORS_COMPARE.pink; nodeEl.style.strokeWidth = '4px'; }
+        }));
+        ops++; await delay();
+        statsEl.textContent = `Phase 2: Selecting pivots...`;
+        const pivots = [1, 4];
+        pivots.forEach(p => updateCompareNodeColor(newAlgoSvg, p, ACCENT_COLORS_COMPARE.pink));
+        ops++; await delay();
+        statsEl.textContent = `Phase 3: Expanding from pivots...`;
+        const frontier = new Set([START_NODE, ...pivots].flatMap(p => comparisonGraph.edges.filter(e => e.source === p || e.target === p).map(e => e.source === p ? e.target : e.source)));
+        frontier.forEach(nodeId => { if (nodeId !== START_NODE && nodeId !== END_NODE) updateCompareNodeColor(newAlgoSvg, nodeId, ACCENT_COLORS_COMPARE.yellow); });
+        ops++; await delay();
+        statsEl.textContent = `Phase 4: Final relaxation...`;
+        comparisonGraph.nodes.forEach(node => { if (node.id !== START_NODE && node.id !== END_NODE) updateCompareNodeColor(newAlgoSvg, node.id, ACCENT_COLORS_COMPARE.teal); });
+        ops++; await delay();
+        let current = END_NODE;
+        while (current !== null && prev[current] !== undefined) {
+            const previous = prev[current]; if (previous === null) break;
+            updateEdgeColor(newAlgoSvg, current, previous, ACCENT_COLORS_COMPARE.blue); 
+            updateCompareNodeColor(newAlgoSvg, current, ACCENT_COLORS_COMPARE.blue); 
+            current = previous;
+        }
+        updateCompareNodeColor(newAlgoSvg, START_NODE, ACCENT_COLORS_COMPARE.green); 
+        updateCompareNodeColor(newAlgoSvg, END_NODE, ACCENT_COLORS_COMPARE.green);
+        statsEl.textContent = `Operations: ${ops} | Path Cost: ${distances[END_NODE]}`;
+    }
+
+    function findShortestPathForDrawing() {
+        const distances = {}; const prev = {}; const pq = new Set(comparisonGraph.nodes.map(n => n.id));
+        comparisonGraph.nodes.forEach(node => { distances[node.id] = Infinity; prev[node.id] = null; });
+        distances[START_NODE] = 0;
+        while (pq.size > 0) {
+            let u = Array.from(pq).reduce((a, b) => distances[a] < distances[b] ? a : b);
+            pq.delete(u); if (u === END_NODE || distances[u] === Infinity) break;
+            comparisonGraph.edges.filter(e => e.source === u || e.target === u).forEach(edge => {
+                // BUG FIX: The variable was 'edge', but 'e' was used below. Corrected to 'edge'.
+                const v = edge.source === u ? edge.target : edge.source;
+                if (pq.has(v)) {
+                    const alt = distances[u] + edge.weight;
+                    if (alt < distances[v]) {
+                        distances[v] = alt; prev[v] = u;
+                    }
+                }
+            });
+        }
+        return { distances, prev };
+    }
+
+    function initializeComparisonSim() {
+        createComparisonGraph(); 
+        drawComparisonGraph(dijkstraSvg, comparisonGraph); 
+        drawComparisonGraph(newAlgoSvg, comparisonGraph);
+        startBtn.disabled = false; isRunning = false;
+        document.getElementById('dijkstra-stats').textContent = 'Operations: 0 | Path Cost: N/A';
+        document.getElementById('new-algo-stats').textContent = 'Operations: 0 | Path Cost: N/A';
+    }
+
+    startBtn.addEventListener('click', async () => {
+        if (isRunning) return; 
+        isRunning = true; 
+        startBtn.disabled = true;
+        drawComparisonGraph(dijkstraSvg, comparisonGraph); 
+        drawComparisonGraph(newAlgoSvg, comparisonGraph);
+        await Promise.all([runDijkstra(), runNewAlgorithm()]);
+        isRunning = false;
+    });
+
+    resetBtn.addEventListener('click', () => { 
+        if (!isRunning) initializeComparisonSim(); 
+    });
+    
+    document.addEventListener('DOMContentLoaded', initializeComparisonSim);
+}
+</script>
+</body>
+</html>
