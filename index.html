@@ -31,9 +31,14 @@
             padding: 0;
         }
 
-        @keyframes spin-glow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        /* Removed animation from spin-glow as requested */
+        /* @keyframes spin-glow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } */
+
+        html, body {
+            height: 100%; /* Ensure html and body take full viewport height */
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden; /* Prevent horizontal scroll */
         }
 
         body {
@@ -41,7 +46,37 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             padding: 2rem 1rem;
-            overflow-x: hidden;
+            /* Position relative for pseudo-elements */
+            position: relative;
+            /* Ensure body itself doesn't cause scrollbars unless content needs it */
+            overflow-y: auto; 
+        }
+
+        /* FIX: Removed animation and simplified positioning for background glows */
+        body::before, body::after {
+            content: '';
+            position: absolute;
+            z-index: -1;
+            width: 80vmax;
+            height: 80vmax;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.15; /* Kept the opacity */
+            /* Removed animation */
+            top: 0;
+            left: 0;
+            transform: translate(-20%, -20%); /* Centered glow */
+        }
+
+        body::before {
+            background-color: var(--accent-purple);
+        }
+
+        body::after {
+            background-color: var(--accent-teal);
+            bottom: 0;
+            right: 0;
+            transform: translate(20%, 20%); /* Offset for the second glow */
         }
 
         /* TYPOGRAPHY */
@@ -71,38 +106,13 @@
         /* LAYOUT & MAIN CONTAINER */
         .page-container {
             position: relative;
-            z-index: 1;
+            z-index: 1; /* Ensures content stays above background glows */
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 3rem;
             width: 100%;
             overflow: clip; /* FIX: Prevents pseudo-elements from creating extra scroll height */
-        }
-
-        .page-container::before, .page-container::after {
-            content: '';
-            position: absolute;
-            z-index: -1;
-            width: 80vmax;
-            height: 80vmax;
-            border-radius: 50%;
-            filter: blur(150px);
-            opacity: 0.15;
-            animation: spin-glow 60s linear infinite;
-        }
-
-        .page-container::before {
-            top: -40vmax;
-            left: -40vmax;
-            background-color: var(--accent-purple);
-        }
-
-        .page-container::after {
-            bottom: -40vmax;
-            right: -40vmax;
-            background-color: var(--accent-teal);
-            animation-delay: -30s;
         }
 
         /* CARD STYLES */
@@ -239,12 +249,20 @@
         .footer {
             margin-top: 2rem;
             font-size: 14px;
-            color: #666;
+            color: var(--text-muted);
             text-align: center;
             line-height: 1.5;
         }
-        .footer a { color: var(--accent-blue); text-decoration: none; }
-        .footer a:hover { text-decoration: underline; }
+        /* Fix Link Color */
+        .footer a, .explanation a { 
+            color: var(--accent-pink); 
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .footer a:hover, .explanation a:hover { 
+            text-decoration: underline;
+            color: var(--accent-teal);
+        }
         .footer p { margin: 8px 0; }
         
         /* RESPONSIVE DESIGN */
@@ -330,7 +348,7 @@
                 For over 40 years, finding the shortest path was dominated by <strong>Dijkstra's Algorithm</strong>. Its strategy is a meticulous "shock wave" that always finds the *absolute closest* unvisited node. This requires constantly sorting a large "frontier" of possibilities, creating a performance limit known as the <strong>"sorting bottleneck,"</strong> a theoretical barrier thought to be unbreakable since the 1980s.
             </p>
             <p>
-                The 2025 breakthrough by <strong>Duan, Mao, et al.</strong> bypasses this by avoiding sorting altogether. It uses a <strong>divide-and-conquer</strong> strategy that works in <strong>layers</strong>. Instead of sorting every node, it groups the frontier into clusters and selects representative <strong>pivots</strong>. It then uses a few <strong>Bellman-Ford-style relaxations</strong> to propagate distances from these pivots. This approach is more efficient, though the Rust implementation's author notes you need "VERY large graphs under VERY specific circumstances" for it to outperform alternatives.
+                The 2025 breakthrough by <strong>Duan, Mao, et al.</strong> bypasses this by avoiding sorting altogether. It uses a <strong>divide-and-conquer</strong> strategy that works in <strong>layers</strong>. Instead of sorting every node, it groups the frontier into clusters and selects representative <strong>pivots</strong>. It then uses a few <strong>Bellman-Ford-style relaxations</strong> to propagate distances from these pivots. This approach is more efficient, though as the author of a <a href="https://github.com/alphastrata/DunMaoSSSP" target="_blank">proof-of-concept Rust implementation</a> notes, you need "VERY large graphs under VERY specific circumstances" for it to outperform alternatives.
             </p>
             <p>
                 <strong>About These Simulations:</strong> These are <strong>conceptual visualizations</strong> (or "POCs" - Proof of Concepts) of these high-level strategies. The grid simulation shows a practical application on a maze, while the comparison below shows the core strategic differences on a classic graph problem.
@@ -344,6 +362,9 @@
             <p>
                 Based on the paper: <a href="https://arxiv.org/abs/2504.17033" target="_blank">"Breaking the Sorting Barrier for Directed Single-Source Shortest Paths"</a>
                 by Ran Duan, Jiayi Mao, Xiao Mao, Xinkai Shu, and Longhui Yin (2025).
+            </p>
+            <p>
+                Inspired by the <a href="https://github.com/alphastrata/DunMaoSSSP" target="_blank">Rust implementation by alphastrata</a>.
             </p>
         </div>
     </div>
