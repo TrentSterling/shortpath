@@ -1,0 +1,27 @@
+{
+  "repository": "shortpath",
+  "baseline": "eba527a711544511185eefe92f104cc74321660e",
+  "sharedRevision": "83dbfb4d8241501012c5ec22be49d79f28ccf6b7",
+  "javascriptSha256": "78e5f1cd0ab28f5361c445cecf6d539664d6ef5a39ceedb5228e2bfca5501bed",
+  "cssSha256": "70723556209736cc1d9e8dff2aa2fb5e68157d6ab0de2983406376baad85a8d0",
+  "bio": "<p>Short Path is a visualiser for shortest-path algorithms, including Dijkstra and the Duan-Mao approach, so you can watch how each one explores a graph and why they reach the answer differently.</p><p>One page, no install, written in vanilla JavaScript. By Tront (Trent Sterling).</p>",
+  "title": "Short Path by Tront",
+  "list": "<li><a href=\"https://tront.xyz/vibestar/\">VibeStar</a>: A* pathfinding visualiser with web workers and a lot of knobs.</li><li><a href=\"https://tront.xyz/vibemaze/\">VibeMaze</a>: ASCII 3D maze rendered with a triangle rasteriser, grown out of an ASCII raycaster.</li><li><a href=\"https://tront.xyz/lerp/\">Frame-Rate Independent Lerp</a>: Why naive lerp smoothing breaks at different frame rates, and the fix.</li>",
+  "hub": "<a href=\"https://tront.xyz/games/\">All games and tools</a> &middot; <a href=\"https://tront.xyz/blog/\">Devlog</a> &middot; <a href=\"https://tront.xyz/discord/\">Discord</a> &middot; <a href=\"https://github.com/TrentSterling/shortpath\">Source on GitHub</a> &middot; <a href=\"https://tront.xyz/\">tront.xyz</a>",
+  "jsonLd": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"SoftwareApplication\", \"name\": \"Short Path\", \"alternateName\": [\"Short Path by Tront\"], \"url\": \"https://tront.xyz/shortpath/\", \"description\": \"Duan-Mao and Dijkstra shortest-path algorithms visualised in JavaScript.\", \"author\": {\"@type\": \"Person\", \"name\": \"Trent Sterling\", \"alternateName\": \"Tront\", \"url\": \"https://tront.xyz/\"}, \"publisher\": {\"@type\": \"Organization\", \"name\": \"Tront\", \"url\": \"https://tront.xyz/\"}, \"isAccessibleForFree\": true, \"offers\": {\"@type\": \"Offer\", \"price\": \"0\", \"priceCurrency\": \"USD\"}, \"applicationCategory\": \"DeveloperApplication\", \"operatingSystem\": \"Web browser\"}</script>",
+  "scripts": [
+    "dd90d93a5b1cffb8fc5b6108be6a0583a6efbbd12f7c52687a0377fef5a73c2f",
+    "0cae8b3b838598e524d5e81348fce8214277cc83eb57c1d898c5efd0754b6d9e",
+    "90016f34e0636f4c3da02d75f0d392294c87a6f731abe2541dbd0dfd9f59fca9"
+  ],
+  "styles": [
+    "5e7b845bfe1179b03062a17f9a7be10a7e6f53b735d51b97e376836537bc74da"
+  ],
+  "videos": [],
+  "surfaceAttributes": [
+    "id=\"grid-svg\"",
+    "id=\"dijkstra-svg\"",
+    "id=\"new-algo-svg\""
+  ],
+  "sharedMerge": "5c22da598774e04d2bc854850a8e72b3a7fdb66f"
+}
